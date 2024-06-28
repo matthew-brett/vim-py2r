@@ -16,7 +16,8 @@ if exists("g:loaded_py2r_ftplugin")
 endif
 let loaded_py2r_ftplugin = 1
 
-if !has('python3')
+let py_cmd_ver = 'python3'
+if !has(py_cmd_ver)
     echoerr "Error: Requires Vim compiled with +python3"
     finish
 endif
@@ -126,7 +127,7 @@ def py2r(py_code):
         (.*?)
         \)
         ''',
-        r'\1(\2, breaks=\3\4,\n    main=\5,\n    xlab=\6)', out_code,
+        r'\1(\2, breaks=\3\4,\n     main=\5,\n     xlab=\6)', out_code,
         flags=re.VERBOSE
     )
     out_code = re.sub(
@@ -158,6 +159,14 @@ def py2r(py_code):
         r'sample(\1, replace=TRUE)', out_code,
         flags=re.VERBOSE | re.MULTILINE | re.DOTALL
     )
+    out_code = re.sub(
+        r'''
+        rnd\.permuted\(
+        (.*?)\)
+        ''',
+        r'sample(\1)', out_code,
+        flags=re.VERBOSE | re.MULTILINE | re.DOTALL
+    )
     out_code = re.sub(r'np\.zeros', r'numeric', out_code)
     r_lines = []
     indents = []
@@ -182,7 +191,7 @@ def py2r(py_code):
 
 
 @bridged
-def p2rewrite():
+def p_2_rewrite():
     row, col = vim.current.window.cursor
     buf = vim.current.buffer
     lines = buf[:]
@@ -193,7 +202,7 @@ def p2rewrite():
     r_code = py2r(py_code)
     r_lines = ['', '```{r}'] + r_code.splitlines() + ['```', '']
     buf[:] = buf[:next_i] + r_lines + buf[next_i:]
-    vim.current.window.cursor = (next_i + len(r_lines) + 1, col)
+    vim.current.window.cursor = (next_i + 2, col)
 
 
 endpython

@@ -11,8 +11,8 @@ for (i in 1:n_trials) {
 }
 
 hist(results, breaks=25,
-    main='Bootstrap distribution of density means',
-    xlab='Bootstrap density means')
+     main='Bootstrap distribution of density means',
+     xlab='Bootstrap density means')
 
 mean_limits <- quantile(results, c(0.025, 0.975))
 

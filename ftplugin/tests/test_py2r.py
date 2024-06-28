@@ -12,7 +12,7 @@ import types
 
 THIS_DIR = Path(__file__).parent
 CODE_DIR = THIS_DIR.parent
-VIM_FILE = CODE_DIR / 'py2r.vim'
+VIM_FILE = CODE_DIR / 'rmarkdown_py2r.vim'
 
 # Pull python code out of vim file
 _all_code = VIM_FILE.read_text()
