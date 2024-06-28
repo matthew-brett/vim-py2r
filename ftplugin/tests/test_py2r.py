@@ -34,7 +34,19 @@ sys.modules['vim_bridge'] = vim_bridge
 
 exec(PY_CODE)
 
+PY_PROG = (THIS_DIR / 'prog1.py').read_text().rstrip()
+R_PROG = (THIS_DIR / 'prog1.R').read_text().rstrip()
+
+
 def test_rewrite():
-    py_code = (THIS_DIR / 'prog1.py').read_text()
-    r_code = (THIS_DIR / 'prog1.R').read_text()
-    assert py2r(py_code) == r_code.strip()
+    assert py2r(PY_PROG) == R_PROG
+
+
+def test_find_python_block():
+    rmd_lines = (THIS_DIR / 'nb1.Rmd').read_text().splitlines()
+    for i in range(0, 24):
+        assert find_python_block(rmd_lines, 23) == (None, None, None)
+    for i in range(24, 50):
+        assert find_python_block(rmd_lines, 24) == (PY_PROG, 24, 49)
+    for i in range(50, len(rmd_lines)):
+        assert find_python_block(rmd_lines, 23) == (None, None, None)
