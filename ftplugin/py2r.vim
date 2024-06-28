@@ -1,8 +1,8 @@
-" reStructuredText sections plugin
+" Python to R plugin
 " Language:     Python (ft=python)
 " Maintainer:   Matthew Brett
 " Version:      0.1
-" URL:          http://github.com/mathew-brett/vim-rst-sections
+" URL:          http://github.com/mathew-brett/vim-py2r
 "
 " VimVersion:   Vim 7 (may work with lower Vim versions, but not tested)
 "
@@ -11,35 +11,17 @@
 " <vincent@datafox.nl>, with thanks.
 
 " Only do this when not done yet for this buffer
-if exists("g:loaded_rst_sections_ftplugin")
+if exists("g:loaded_py2r_ftplugin")
     finish
 endif
-let loaded_rst_sections_ftplugin = 1
+let loaded_py2r_ftplugin = 1
 
-" Default to Python 3
-let py_cmd_ver = 'python3'
-let py_cmd_ver_other = 'python'
-" Allow user to select Python 2
-if exists('g:rst_prefer_python_version') &&
-            \ g:rst_prefer_python_version == 2
-    let py_cmd_ver = 'python'
-    let py_cmd_ver_other = 'python3'
-endif
-if !has(py_cmd_ver)
-    let py_cmd_ver = py_cmd_ver_other
-    if !has(py_cmd_ver)
-        echoerr "Error: Requires Vim compiled with +python or +python3"
-        finish
-    endif
+if !has('python3')
+    echoerr "Error: Requires Vim compiled with +python3"
+    finish
 endif
 
-if py_cmd_ver == 'python'
-    command! -nargs=1 Python python <args>
-else
-    command! -nargs=1 Python python3 <args>
-endif
-
-Python << endpython
+python3 << endpython
 
 import vim
 
@@ -414,6 +396,119 @@ def section_cycle(cyc_func):
     vim.current.window.cursor = (curr_line+1, 0)
 
 
+FOR_PRELUDE = re.compile(
+        r'''
+        (?P<indent>\s*)
+        for\s+
+        (?P<lvar>\w+)\s+
+        in\s+
+        range\(
+        (?P<lseq>\w+)
+        \):
+        ''',
+        flags=re.VERBOSE)
+
+
+def py2r(py_code):
+    out_code = re.sub(
+        r'''
+        np\.array\(
+        [\n\t ]*
+        \[
+        (.*?)
+        \]\)
+        ''', r'c(\1)', py_code,
+            flags=re.MULTILINE | re.VERBOSE
+    )
+    out_code = re.sub(
+        r'''
+        len\(
+        [\n\t ]*
+        (.*?)
+        \)
+        ''', r'length(\1)', out_code,
+            flags=re.MULTILINE | re.VERBOSE
+    )
+    out_code = re.sub(r' = ', ' <- ', out_code, flags=re.MULTILINE)
+    out_code = re.sub(r'\d+_[0-9_]+',
+        lambda m : m.group().replace('_', ''),
+        out_code)
+    out_code = re.sub(
+        r'''
+        plt\.
+        (\w+)
+        \(
+        (.*?)
+        ,\s*
+        bins\s*
+        =\s*
+        (\w+)
+        (.*?)
+        \)
+        \n*
+        plt\.title\(
+        (.*?)
+        \)
+        \n*
+        plt\.xlabel\(
+        (.*?)
+        \)
+        ''',
+        r'\1(\2, breaks=\3\4,\n    main=\5,\n    xlab=\6)', out_code,
+        flags=re.VERBOSE
+    )
+    out_code = re.sub(
+        r'''
+        (\s+)\[
+        (.*?)
+        ]
+        ''',
+        r'\1c(\2)', out_code,
+        flags=re.VERBOSE
+    )
+    out_code = re.sub(
+        r'''
+        print\(
+        (['"])
+        (.*?)
+        (['"])
+        ,\s*
+        (.*?)\)
+        ''',
+        r'message(\1\2 \3, \4)', out_code,
+        flags=re.VERBOSE | re.MULTILINE | re.DOTALL
+    )
+    out_code = re.sub(
+        r'''
+        rnd\.choice\(
+        (.*?)\)
+        ''',
+        r'sample(\1, replace=TRUE)', out_code,
+        flags=re.VERBOSE | re.MULTILINE | re.DOTALL
+    )
+    out_code = re.sub(r'np\.zeros', r'numeric', out_code)
+    r_lines = []
+    indents = []
+    for line in out_code.splitlines():
+        if line.startswith('import ') or line.startswith('from '):
+            continue
+        if 'np.random.default_rng' in line:
+            continue
+        m = FOR_PRELUDE.match(line)
+        if m:
+            gvars = m.groupdict()
+            line = "{indent}for ({lvar} in 1:{lseq}) {{".format(**gvars)
+            indents.append(gvars['indent'])
+        elif indents:
+            if not line.startswith(indents[-1] + ' '):
+                indent = indents.pop()
+                r_lines.append(indent + '}')
+        r_lines.append(line)
+    assert not indents
+    out_code = '\n'.join(r_lines)
+    return re.sub(r'np\.(\w+)', r'\1', out_code).strip()
+
+
 @bridged
 def rst_section_reformat():
     line_no, below_no, above_no, buf = current_lines()
@@ -447,17 +542,8 @@ endpython
 
 " Add mappings, unless the user didn't want this.
 " The default mapping is registered, unless the user remapped it already.
-if !exists("no_plugin_maps") && !exists("no_rst_sections_maps")
-    if !hasmapto('RstSectionDownCycle(')
-        noremap <silent> <leader><leader>d :call RstSectionDownCycle()<CR>
-    endif
-    if !hasmapto('RstSectionUpCycle(')
-        noremap <silent> <leader><leader>u :call RstSectionUpCycle()<CR>
-    endif
-    if !hasmapto('RstSectionReformat(')
-        noremap <silent> <leader><leader>r :call RstSectionReformat()<CR>
-    endif
-    if !hasmapto('RstSectionStandardize(')
-        noremap <silent> <leader><leader>p :call RstSectionStandardize()<CR>
+if !exists("no_plugin_maps") && !exists("no_py2r_maps")
+    if !hasmapto('P2Rewrite(')
+        noremap <silent> <leader><leader>r :call P2Rewrite()<CR>
     endif
 endif
