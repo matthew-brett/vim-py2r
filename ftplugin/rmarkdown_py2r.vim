@@ -22,20 +22,23 @@ if !has(py_cmd_ver)
     finish
 endif
 
+" Vim script filename.
+" https://vi.stackexchange.com/a/7362
+let s:curfile = expand('<sfile>:p')
+
 function! P2Rewrite()
+
 python3 << endpython
 import vim
 import sys
 from pathlib import Path
 
-# get the directory this script is in, so we can import our code.
-our_pth = Path(vim.eval('expand("<sfile>")')).parent.resolve()
+our_pth = Path(vim.eval('s:curfile')).parent.resolve()
 sys.path.insert(0, str(our_pth))
 
 import py2r
 
 py2r.rewrite()
-
 endpython
 endfunction
 
