@@ -52,14 +52,6 @@ The same function should also be accessible with the key combination
 Install
 *******
 
-To get started, get all the code you need in some directory::
-
-    git clone https://github.com/matthew-brett/vim-py2r
-    cd vim-py2r
-    git submodule update --init
-
-Now to install.
-
 I hope you are using vim ``pathogen``!
 
 If you are using pathogen
@@ -79,8 +71,6 @@ It's a really good idea to use pathogen, but if you aren't::
     mkdir some_directory
     cd some_directory
     git clone https://github.com/matthew-brett/vim-py2r
-    cd vim-py2r
-    git submodule update --init --recursive
 
 Now copy the contents of the ``ftplugin`` directory into your
 ``~/.vim/ftplugin`` directory (e.g ``cp -r ftplugin/* ~/.vim/ftplugin``).
