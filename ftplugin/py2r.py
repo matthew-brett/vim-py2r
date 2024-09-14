@@ -120,6 +120,17 @@ def py2r(py_code):
     )
     out_code = re.sub(
         r'''
+        print\(
+        (['"])
+        (.*?)
+        (['"])
+        \)
+        ''',
+        r'message(\1\2\3)', out_code,
+        flags=re.VERBOSE | re.MULTILINE | re.DOTALL
+    )
+    out_code = re.sub(
+        r'''
         rnd\.choice\(
         (.*?)\)
         ''',
@@ -135,6 +146,8 @@ def py2r(py_code):
         flags=re.VERBOSE | re.MULTILINE | re.DOTALL
     )
     out_code = re.sub(r'np\.zeros', r'numeric', out_code)
+    out_code = re.sub('True', 'TRUE', out_code)
+    out_code = re.sub('False', 'FALSE', out_code)
     r_lines = []
     indents = []
     for line in out_code.splitlines():
